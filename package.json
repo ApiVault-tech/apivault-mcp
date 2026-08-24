@@ -1,6 +1,6 @@
 {
   "name": "apivault-mcp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Official Model Context Protocol (MCP) server for ApiVault. Secure, encrypted API key management for AI agents.",
   "type": "module",
   "scripts": {

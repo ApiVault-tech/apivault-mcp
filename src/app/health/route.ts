@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { MCP_VERSION } from "@/lib/version";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ export async function GET() {
     {
       status: "ok",
       service: "apivault-mcp",
-      version: "1.0.0",
+      version: MCP_VERSION,
       timestamp: new Date().toISOString(),
     },
     {

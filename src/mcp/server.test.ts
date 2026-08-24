@@ -3,6 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createMcpServer } from "./server";
 import { ApiVaultClient, ApiVaultError } from "../lib/apivault-client";
+import { MCP_VERSION } from "../lib/version";
 
 function getTextContent(res: any): string {
   const content = res?.content as Array<{ type: string; text: string }> | undefined;
@@ -48,7 +49,7 @@ describe("McpServer & Tool Implementations", () => {
       expect(serverVersion).toEqual(
         expect.objectContaining({
           name: "apivault",
-          version: "1.0.0",
+          version: MCP_VERSION,
           title: "ApiVault",
         }),
       );

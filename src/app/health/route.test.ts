@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { GET as getHealth, OPTIONS as optionsHealth } from "./route";
+import { MCP_VERSION } from "@/lib/version";
 
 describe("GET /health", () => {
   it("returns 204 on OPTIONS with CORS headers", async () => {
@@ -16,7 +17,7 @@ describe("GET /health", () => {
     const body = await res.json();
     expect(body.status).toBe("ok");
     expect(body.service).toBe("apivault-mcp");
-    expect(body.version).toBe("1.0.0");
+    expect(body.version).toBe(MCP_VERSION);
     expect(body.timestamp).toBeDefined();
   });
 });

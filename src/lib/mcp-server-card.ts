@@ -1,5 +1,6 @@
 import { getApiVaultUrl, getMcpServerUrl } from "@/lib/config";
 import { getMcpServerIcons } from "@/lib/mcp-icons";
+import { MCP_VERSION } from "@/lib/version";
 
 /** Required by SEP-2127; not yet published on static.modelcontextprotocol.io (404 today). */
 export const MCP_SERVER_CARD_SCHEMA_URL =
@@ -14,7 +15,7 @@ export function getMcpServerCard() {
     $schema: MCP_SERVER_CARD_SCHEMA_URL,
     name: "app.apivault/vault",
     title: "ApiVault",
-    version: "1.0.1",
+    version: MCP_VERSION,
     description: "Secure API key vault for AI agents and developers.",
     websiteUrl: getApiVaultUrl(),
     remotes: [

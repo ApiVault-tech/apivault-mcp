@@ -3,6 +3,7 @@ import { GET as getServerCard, OPTIONS as optionsServerCard } from "@/app/mcp/se
 import { GET as getLegacyServerCard } from "@/app/server-card/route";
 import { GET as getWellKnownServerCard } from "@/app/.well-known/mcp/server-card/route";
 import { getMcpServerCard } from "./mcp-server-card";
+import { MCP_VERSION } from "./version";
 
 describe("mcp-server-card", () => {
   it("matches SEP-2127 required fields without a singular icon property", () => {
@@ -10,7 +11,8 @@ describe("mcp-server-card", () => {
     expect(card.$schema).toContain("server-card.schema.json");
     expect(card.name).toBe("app.apivault/vault");
     expect(card.title).toBe("ApiVault");
-    expect(card.version).toBe("1.0.1");
+    expect(MCP_VERSION).toBe("1.0.2");
+    expect(card.version).toBe(MCP_VERSION);
     const expectedApiVault = process.env.API_VAULT_URL ? process.env.API_VAULT_URL.replace(/\/+$/, "") : "https://apivault.tech";
     const expectedMcp = process.env.MCP_SERVER_URL ? process.env.MCP_SERVER_URL.replace(/\/+$/, "") : "https://mcp.apivault.tech";
     expect(card.websiteUrl).toBe(expectedApiVault);
