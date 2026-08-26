@@ -11,7 +11,7 @@ describe("mcp-server-card", () => {
     expect(card.$schema).toContain("server-card.schema.json");
     expect(card.name).toBe("app.apivault/vault");
     expect(card.title).toBe("ApiVault");
-    expect(MCP_VERSION).toBe("1.0.2");
+    expect(MCP_VERSION).toBe("1.0.3");
     expect(card.version).toBe(MCP_VERSION);
     const expectedApiVault = process.env.API_VAULT_URL ? process.env.API_VAULT_URL.replace(/\/+$/, "") : "https://apivault.tech";
     const expectedMcp = process.env.MCP_SERVER_URL ? process.env.MCP_SERVER_URL.replace(/\/+$/, "") : "https://mcp.apivault.tech";
