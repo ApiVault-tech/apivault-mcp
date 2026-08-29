@@ -54,6 +54,7 @@ export class ApiVaultClient {
     const headers: Record<string, string> = {
       "Authorization": `Bearer ${this.token}`,
       "Accept": "application/json",
+      "User-Agent": "apivault-mcp/1.0.3 (@modelcontextprotocol/sdk)",
     };
 
     if (options.vaultKey) {
