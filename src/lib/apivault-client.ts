@@ -1,4 +1,5 @@
 import { getApiVaultUrl } from "./config";
+import { MCP_VERSION } from "./version";
 
 export interface MaskedKey {
   id: string;
@@ -15,13 +16,24 @@ export interface MaskedKey {
 export class ApiVaultError extends Error {
   code?: string;
   status: number;
+  /** Seconds to wait, from `Retry-After` on a throttled response. */
+  retryAfterSeconds?: number;
 
-  constructor(message: string, status: number, code?: string) {
+  constructor(message: string, status: number, code?: string, retryAfterSeconds?: number) {
     super(message);
     this.name = "ApiVaultError";
     this.status = status;
     this.code = code;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
+}
+
+/** `Retry-After` in seconds, when the server sent a usable numeric one. */
+function readRetryAfter(response: Response): number | undefined {
+  const raw = response.headers.get("retry-after");
+  if (!raw) return undefined;
+  const seconds = Number.parseInt(raw, 10);
+  return Number.isFinite(seconds) && seconds > 0 ? seconds : undefined;
 }
 
 export class ApiVaultClient {
@@ -54,7 +66,7 @@ export class ApiVaultClient {
     const headers: Record<string, string> = {
       "Authorization": `Bearer ${this.token}`,
       "Accept": "application/json",
-      "User-Agent": "apivault-mcp/1.0.3 (@modelcontextprotocol/sdk)",
+      "User-Agent": `apivault-mcp/${MCP_VERSION} (@modelcontextprotocol/sdk)`,
     };
 
     if (options.vaultKey) {
@@ -90,9 +102,23 @@ export class ApiVaultClient {
     }
 
     if (!response.ok) {
-      const errorMsg = data?.error || `ApiVault request failed with status ${response.status}`;
-      const errorCode = data?.code || (response.status === 401 ? "UNAUTHORIZED" : response.status === 403 ? "FORBIDDEN" : undefined);
-      throw new ApiVaultError(errorMsg, response.status, errorCode);
+      const retryAfterSeconds = readRetryAfter(response);
+      let errorMsg = data?.error || `ApiVault request failed with status ${response.status}`;
+      const errorCode =
+        data?.code ||
+        (response.status === 401
+          ? "UNAUTHORIZED"
+          : response.status === 403
+            ? "FORBIDDEN"
+            : response.status === 429
+              ? "RATE_LIMITED"
+              : undefined);
+      // Wrong vault keys are rate limited server-side. Tell the agent how long
+      // to wait so it stops re-submitting the same key immediately.
+      if (response.status === 429 && retryAfterSeconds) {
+        errorMsg = `${errorMsg} Retry after ${retryAfterSeconds} second${retryAfterSeconds === 1 ? "" : "s"}; do not retry sooner.`;
+      }
+      throw new ApiVaultError(errorMsg, response.status, errorCode, retryAfterSeconds);
     }
 
     return data as T;

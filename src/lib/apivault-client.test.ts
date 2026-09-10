@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ApiVaultClient, ApiVaultError } from "./apivault-client";
+import { MCP_VERSION } from "./version";
 
 describe("ApiVaultClient", () => {
   const token = "test_mcp_access_token";
@@ -92,6 +93,73 @@ describe("ApiVaultClient", () => {
         expect(err.status).toBe(401);
       }
     }
+  });
+
+  it("surfaces the vault-key throttle's Retry-After on a 429", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          error: "Too many incorrect vault keys. Please wait before trying again.",
+          code: "VAULT_KEY_RATE_LIMITED",
+        }),
+        {
+          status: 429,
+          headers: { "Content-Type": "application/json", "Retry-After": "420" },
+        },
+      ),
+    );
+
+    try {
+      await client.revealKey("key_1", "wrong-vault-key");
+      expect.unreachable("revealKey should reject on a 429");
+    } catch (err) {
+      expect(err).toBeInstanceOf(ApiVaultError);
+      const apiErr = err as ApiVaultError;
+      expect(apiErr.status).toBe(429);
+      expect(apiErr.code).toBe("VAULT_KEY_RATE_LIMITED");
+      expect(apiErr.retryAfterSeconds).toBe(420);
+      // The agent needs the wait in the message, not just on the object —
+      // only the message reaches the model through the tool result.
+      expect(apiErr.message).toContain("Retry after 420 seconds");
+    }
+  });
+
+  it("labels an unannotated 429 as RATE_LIMITED without inventing a delay", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: "Slow down." }), {
+        status: 429,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    try {
+      await client.listKeys();
+      expect.unreachable("listKeys should reject on a 429");
+    } catch (err) {
+      const apiErr = err as ApiVaultError;
+      expect(apiErr.code).toBe("RATE_LIMITED");
+      expect(apiErr.retryAfterSeconds).toBeUndefined();
+      expect(apiErr.message).toBe("Slow down.");
+    }
+  });
+
+  it("reports its own package version in the User-Agent", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ keys: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await client.listKeys();
+
+    const headers = (fetchSpy.mock.calls[0][1] as RequestInit).headers as Record<
+      string,
+      string
+    >;
+    expect(headers["User-Agent"]).toBe(
+      `apivault-mcp/${MCP_VERSION} (@modelcontextprotocol/sdk)`,
+    );
   });
 
   it("adds a new key with POST body", async () => {
