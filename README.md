@@ -235,6 +235,10 @@ The MCP server implements standard OAuth 2.1 with **Dynamic Client Registration 
 | `keys:write` | Manage Keys | `add_key`, `update_key`, `delete_key` |
 | `keys:reveal` | Decrypt Secrets | `reveal_key` (access raw unmasked secret values) |
 
+### Project-Scoped Connections
+
+ApiVault workspaces are multi-project. During the browser consent step the user picks a **target project** alongside the scopes, and the issued token is permanently bound to it. Every tool call routes to that project automatically — agents never pass a project ID in tool arguments. To work against a different project, connect the server again and approve a new authorization for it.
+
 ### Managing & Revoking Connections
 Users can review connected AI agents, inspect granted scopes, and revoke access at any time in the web dashboard:
 [ApiVault Dashboard → Settings → MCP Connections](https://apivault.tech/settings/mcp)
@@ -248,10 +252,14 @@ Users can review connected AI agents, inspect granted scopes, and revoke access 
 | `UNAUTHORIZED` | Expired or missing OAuth Bearer token. | Re-authenticate in Cursor or Claude Desktop via the Reconnect action. |
 | `INSUFFICIENT_SCOPE` | Token lacks the required scope (e.g. tried `reveal_key` with only `keys:read`). | Re-authenticate and grant the `keys:reveal` or `keys:write` scope during browser consent. |
 | `VAULT_KEY_REQUIRED` | The account uses Custom Encryption Mode and no `vault_key` was passed. | Provide your custom vault key in the tool arguments. |
-| `INVALID_VAULT_KEY` | The supplied custom vault key failed decryption check. | Check that your master vault key is correct and retry. |
+| `INVALID_VAULT_KEY` | The supplied custom vault key failed decryption check. | Ask the user for the correct vault key. Do not re-send the same one — wrong guesses are counted against the limit below. |
+| `VAULT_KEY_RATE_LIMITED` | Too many incorrect vault keys — 10 per 15 minutes, counted per user and per source address. | **Stop retrying.** The tool error states how long to wait (from the `Retry-After` header); ask the user for the correct vault key rather than guessing again. |
+| `RATE_LIMITED` | The backend throttled the request (HTTP `429`) without a specific code. | Wait for the delay named in the error message before retrying. |
 | `DUPLICATE_KEY` | A key with the same name and environment already exists. | Use `update_key` or pick a unique key name. |
 | `NOT_FOUND` | The specified key ID does not exist in your vault. | Use `list_keys` to verify the active key IDs. |
 | `NETWORK_ERROR` | Unable to reach the ApiVault backend gateway. | Check internet connectivity and verify `API_VAULT_URL`. |
+
+> **Vault key attempt limits:** a custom-mode vault key is checked against a stored hash, so every surface that accepts one — web, CLI, and MCP — shares one server-side attempt budget. Only calls that actually carry a `vault_key` are counted and a correct key clears the counter, so revealing many keys in a row is fine; repeatedly submitting an unconfirmed key locks the vault path for the user.
 
 ---
 
