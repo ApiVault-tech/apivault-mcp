@@ -8,7 +8,7 @@ Thank you for your interest in contributing to the **ApiVault Remote MCP Server*
 
 1. **Fork and Clone:**
    ```bash
-   git clone https://github.com/TLB-STATION/apivault-mcp.git
+   git clone https://github.com/ApiVault-tech/apivault-mcp.git
    cd apivault-mcp
    ```
 
@@ -67,7 +67,7 @@ We follow the [Conventional Commits](https://www.conventionalcommits.org/) speci
 ## Reporting Issues
 
 If you encounter a bug or unexpected behavior:
-1. Check existing [GitHub Issues](https://github.com/TLB-STATION/apivault-mcp/issues) to see if it has already been reported.
+1. Check existing [GitHub Issues](https://github.com/ApiVault-tech/apivault-mcp/issues) to see if it has already been reported.
 2. Open a new issue with a clear description, reproduction steps, and editor details (e.g. Cursor version, Claude Desktop version).
 
 ---

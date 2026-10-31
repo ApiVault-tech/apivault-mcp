@@ -27,7 +27,7 @@ At **ApiVault**, the security and privacy of developer credentials and API keys 
 If you discover a potential security vulnerability in ApiVault or the ApiVault MCP Server, please **do NOT report it via a public GitHub issue**.
 
 Instead, please send a detailed security report to:
-**support@apivault.tech** (or contact the maintainers at [TLB-STATION](https://github.com/TLB-STATION)).
+**support@apivault.tech** (or contact the maintainers at [ApiVault-tech](https://github.com/ApiVault-tech)).
 
 ### What to Include in Your Report:
 1. A description of the vulnerability and its potential impact.

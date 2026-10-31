@@ -29,10 +29,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/TLB-STATION/apivault-mcp.git"
+    "url": "https://github.com/ApiVault-tech/apivault-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/TLB-STATION/apivault-mcp/issues"
+    "url": "https://github.com/ApiVault-tech/apivault-mcp/issues"
   },
   "homepage": "https://apivault.tech/docs/mcp",
   "dependencies": {

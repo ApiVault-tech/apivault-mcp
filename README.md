@@ -29,10 +29,10 @@ Instead of pasting raw API keys into chat prompts or committing `.env` files to 
 
 ## 🤖 Official AI Agent Skill
 
-If you use AI coding assistants (**Cursor**, **Claude Code**, **Windsurf**, or **Google Antigravity**), install the official [ApiVault Agent Skill](https://github.com/TLB-STATION/apivault-skill) into your workspace:
+If you use AI coding assistants (**Cursor**, **Claude Code**, **Windsurf**, or **Google Antigravity**), install the official [ApiVault Agent Skill](https://github.com/ApiVault-tech/apivault-skill) into your workspace:
 
 ```bash
-git clone https://github.com/TLB-STATION/apivault-skill.git .agents/skills/apivault
+git clone https://github.com/ApiVault-tech/apivault-skill.git .agents/skills/apivault
 ```
 
 This equips your AI agents with native runbooks, copy-paste prompt templates, and security guidelines for interacting with ApiVault MCP.
@@ -273,7 +273,7 @@ You can run your own standalone MCP server or deploy it to your private cloud in
 
 ### 1. Clone and Install
 ```bash
-git clone https://github.com/TLB-STATION/apivault-mcp.git
+git clone https://github.com/ApiVault-tech/apivault-mcp.git
 cd apivault-mcp
 npm install
 ```
@@ -315,10 +315,10 @@ npm start
 ## Community & Ecosystem
 
 - **Main Platform:** [ApiVault Web Dashboard](https://apivault.tech)
-- **AI Agent Skill:** [apivault-skill (GitHub)](https://github.com/TLB-STATION/apivault-skill)
+- **AI Agent Skill:** [apivault-skill (GitHub)](https://github.com/ApiVault-tech/apivault-skill)
 - **CLI Tool:** [apivault-cli (npm)](https://www.npmjs.com/package/apivault)
 - **Documentation:** [ApiVault Docs & Guides](https://apivault.tech/docs)
-- **Bug Reports & Issues:** [GitHub Issues](https://github.com/TLB-STATION/apivault-mcp/issues)
+- **Bug Reports & Issues:** [GitHub Issues](https://github.com/ApiVault-tech/apivault-mcp/issues)
 
 ---
 
