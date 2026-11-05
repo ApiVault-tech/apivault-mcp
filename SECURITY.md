@@ -4,7 +4,7 @@ At **ApiVault**, the security and privacy of developer credentials and API keys 
 
 ---
 
-## Zero-Knowledge & Architecture Guarantees
+## Architecture Guarantees
 
 - **No Secrets on Disk**: The standalone MCP server acts purely as an in-memory transport gateway and does not store database credentials, master encryption keys, or unsealed secrets on disk.
 - **Masked Previews by Default**: The `list_keys` and `get_key` tools only expose masked string previews (e.g. `sk_live_••••1234`), protecting secrets from inadvertently leaking into LLM prompt contexts.

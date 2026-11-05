@@ -23,7 +23,7 @@ Instead of pasting raw API keys into chat prompts or committing `.env` files to 
 1. Search and inspect available credentials using **masked previews** (e.g. `sk_live_••••1234`).
 2. Request raw secret values only when executing code via scoped permissions.
 3. Automatically store newly generated API keys directly into your vault.
-4. Support **Zero-Knowledge custom vault keys** decrypted in-memory on-the-fly.
+4. Support **custom vault keys**, sent with each request that needs them and used in memory to decrypt.
 
 ---
 
@@ -221,7 +221,7 @@ The MCP server uses a **Stateless Protocol Gateway** architecture, separating th
 ### Security Properties:
 1. **Zero Database Passwords**: The public `apivault-mcp` service holds no MySQL credentials and no master encryption keys.
 2. **Stateless Forwarding**: Client requests are verified and forwarded to ApiVault's scoped gateway (`/api/mcp/v1/keys`) using standard OAuth Bearer tokens.
-3. **In-Memory Vault Keys**: Custom encryption mode vault keys (`vault_key`) are used only in-memory during single-request derivation and are never written to disk or logs.
+3. **Vault Keys Per Request**: A custom vault key (`vault_key`) is forwarded to ApiVault in the `x-vault-key` header for that single request. This service and ApiVault's gateway do not store it or write it to their application logs. It is still a tool argument, so your AI client may keep it in its own conversation history.
 
 ---
 
