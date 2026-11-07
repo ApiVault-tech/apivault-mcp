@@ -148,7 +148,7 @@ Decrypt and return the raw, unmasked API key value.
 - **Required Scope:** `keys:reveal`
 - **Parameters:**
   - `id` *(string, required)*: The ID of the key to decrypt.
-  - `vault_key` *(string, optional)*: User's custom vault key (required only if the account has Custom Encryption Mode enabled).
+  - `vault_key` *(string, optional)*: User's custom vault key (required only if the project uses custom encryption mode).
 - **Example Agent Prompt:**
   > "I need the raw OpenAI API key so I can run the backend integration tests."
 
@@ -251,7 +251,7 @@ Users can review connected AI agents, inspect granted scopes, and revoke access 
 |---|---|---|
 | `UNAUTHORIZED` | Expired or missing OAuth Bearer token. | Re-authenticate in Cursor or Claude Desktop via the Reconnect action. |
 | `INSUFFICIENT_SCOPE` | Token lacks the required scope (e.g. tried `reveal_key` with only `keys:read`). | Re-authenticate and grant the `keys:reveal` or `keys:write` scope during browser consent. |
-| `VAULT_KEY_REQUIRED` | The account uses Custom Encryption Mode and no `vault_key` was passed. | Provide your custom vault key in the tool arguments. |
+| `VAULT_KEY_REQUIRED` | The project uses custom encryption mode and no `vault_key` was passed. | Provide your custom vault key in the tool arguments. |
 | `INVALID_VAULT_KEY` | The supplied custom vault key failed decryption check. | Ask the user for the correct vault key. Do not re-send the same one — wrong guesses are counted against the limit below. |
 | `VAULT_KEY_RATE_LIMITED` | Too many incorrect vault keys — 10 per 15 minutes, counted per user and per source address. | **Stop retrying.** The tool error states how long to wait (from the `Retry-After` header); ask the user for the correct vault key rather than guessing again. |
 | `RATE_LIMITED` | The backend throttled the request (HTTP `429`) without a specific code. | Wait for the delay named in the error message before retrying. |
