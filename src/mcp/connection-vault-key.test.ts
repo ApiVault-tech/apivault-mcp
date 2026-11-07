@@ -38,9 +38,16 @@ beforeEach(() => {
 });
 
 describe("readConnectionVaultKey", () => {
-  it("reads a trimmed X-Vault-Key header and ignores a blank one", () => {
-    expect(readConnectionVaultKey(new Headers({ "X-Vault-Key": " vk-123 " }))).toBe("vk-123");
-    expect(readConnectionVaultKey(new Headers({ "X-Vault-Key": "" }))).toBeUndefined();
+  it("reads a trimmed X-Secret-Key header and ignores a blank one", () => {
+    expect(readConnectionVaultKey(new Headers({ "X-Secret-Key": " vk-123 " }))).toBe("vk-123");
+    expect(readConnectionVaultKey(new Headers({ "X-Secret-Key": "" }))).toBeUndefined();
+  });
+
+  it("still reads the original X-Vault-Key name, preferring X-Secret-Key when both are sent", () => {
+    expect(readConnectionVaultKey(new Headers({ "X-Vault-Key": "legacy" }))).toBe("legacy");
+    expect(
+      readConnectionVaultKey(new Headers({ "X-Secret-Key": "current", "X-Vault-Key": "legacy" })),
+    ).toBe("current");
     expect(readConnectionVaultKey(new Headers())).toBeUndefined();
   });
 });
@@ -77,7 +84,7 @@ describe("vault key from the connection", () => {
     const result = await client.callTool({ name: "reveal_key", arguments: { id: "k1" } });
 
     expect(result.isError).toBe(true);
-    expect(textOf(result)).toContain("X-Vault-Key header");
+    expect(textOf(result)).toContain("X-Secret-Key header");
   });
 
   it("points a wrong header key back to the client settings", async () => {
