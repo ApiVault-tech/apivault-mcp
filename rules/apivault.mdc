@@ -12,4 +12,4 @@ When using ApiVault MCP tools (`list_keys`, `get_key`, `reveal_key`, `add_key`, 
 2. **Minimal Disclosure**: Only call `reveal_key` when raw secret values are strictly necessary for local process execution or debugging.
 3. **No Secrets in Chat**: Never echo, paste, or print unmasked API secrets in chat messages, markdown files, or commit logs.
 4. **Environment Awareness**: Pass the target environment (`Production`, `Staging`, `Development`) when listing or creating keys.
-5. **Custom Vault Key**: If `reveal_key` returns `VAULT_KEY_REQUIRED`, prompt the user for their custom vault key and supply it in `vault_key`.
+5. **Custom Vault Key**: If a tool returns `VAULT_KEY_REQUIRED`, ask the user to add their vault key as an `X-Vault-Key` header in this MCP server's connection settings. Don't ask them to paste the key into the chat; pass `vault_key` only if they explicitly choose to.

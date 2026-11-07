@@ -19,8 +19,38 @@ function toolJson(data: unknown) {
   };
 }
 
-function mapClientError(err: unknown) {
+/**
+ * The vault key a user configured on the MCP connection itself, sent as an
+ * `X-Vault-Key` header by their client on every request. Keeping it there
+ * means the agent never sees it: tools forward it to ApiVault without the key
+ * ever appearing in a tool call or the conversation.
+ */
+export function readConnectionVaultKey(headers: Headers): string | undefined {
+  const value = headers.get("x-vault-key")?.trim();
+  return value ? value : undefined;
+}
+
+const HEADER_SETUP_HINT =
+  "Ask the user to add their vault key to this MCP server's connection settings as an X-Vault-Key header, so it never passes through the chat. Do not ask them to paste it here.";
+
+const VAULT_KEY_ARGUMENT = z
+  .string()
+  .optional()
+  .describe(
+    "Leave empty. Projects with a custom vault key should have it set as an X-Vault-Key header on this MCP connection. Only pass it if the user explicitly chose to give it here.",
+  );
+
+function mapClientError(err: unknown, connectionVaultKey?: string) {
   if (err instanceof ApiVaultError) {
+    if (err.code === "VAULT_KEY_REQUIRED" && !connectionVaultKey) {
+      return toolError(`${err.message} ${HEADER_SETUP_HINT}`, err.code);
+    }
+    if (err.code === "INVALID_VAULT_KEY" && connectionVaultKey) {
+      return toolError(
+        `${err.message} The vault key comes from the X-Vault-Key header in this MCP connection; ask the user to correct it in their client's settings.`,
+        err.code,
+      );
+    }
     return toolError(err.message, err.code);
   }
   if (err instanceof Error) {
@@ -29,8 +59,15 @@ function mapClientError(err: unknown) {
   return toolError("Unexpected error communicating with ApiVault.", "INTERNAL");
 }
 
-export function createMcpServer(bearerToken: string): McpServer {
+/**
+ * `connectionVaultKey` is the `X-Vault-Key` header from the incoming request.
+ * When present it is used for every tool and a `vault_key` argument is
+ * ignored, so the key the user configured is the one that counts.
+ */
+export function createMcpServer(bearerToken: string, connectionVaultKey?: string): McpServer {
   const client = new ApiVaultClient(bearerToken);
+  const vaultKeyFor = (argument?: string) => connectionVaultKey ?? (argument || undefined);
+  const mapError = (err: unknown) => mapClientError(err, connectionVaultKey);
 
   const server = new McpServer(
     {
@@ -44,7 +81,7 @@ export function createMcpServer(bearerToken: string): McpServer {
     {
       capabilities: { tools: {} },
       instructions:
-        "ApiVault Remote MCP Server. Manage encrypted API keys and credentials. Use list_keys to browse masked keys, reveal_key to decrypt raw secret values, and add_key / update_key / delete_key for management. Custom-mode vaults require vault_key when adding, updating, or revealing keys.",
+        "ApiVault Remote MCP Server. Manage encrypted API keys and credentials. Use list_keys to browse masked keys, reveal_key to decrypt raw secret values, and add_key / update_key / delete_key for management. Projects with a custom vault key need it to reveal, add or change values. The user should set it once as an X-Vault-Key header in this server's connection settings; never ask them to type the vault key into the chat.",
     },
   );
 
@@ -66,7 +103,7 @@ export function createMcpServer(bearerToken: string): McpServer {
         const keys = await client.listKeys({ environment, service });
         return toolJson({ keys });
       } catch (err) {
-        return mapClientError(err);
+        return mapError(err);
       }
     },
   );
@@ -88,7 +125,7 @@ export function createMcpServer(bearerToken: string): McpServer {
         const key = await client.getKey(id);
         return toolJson({ key });
       } catch (err) {
-        return mapClientError(err);
+        return mapError(err);
       }
     },
   );
@@ -97,13 +134,10 @@ export function createMcpServer(bearerToken: string): McpServer {
     "reveal_key",
     {
       title: "Reveal Secret API Key",
-      description: "Decrypt and reveal the raw secret value of an API key. For accounts with custom encryption enabled, supply the user's vault_key.",
+      description: "Decrypt and reveal the raw secret value of an API key.",
       inputSchema: {
         id: z.string().describe("The ID of the key to decrypt"),
-        vault_key: z
-          .string()
-          .optional()
-          .describe("Custom vault key (required only if the account uses custom encryption mode)"),
+        vault_key: VAULT_KEY_ARGUMENT,
       },
       annotations: {
         readOnlyHint: true,
@@ -111,10 +145,10 @@ export function createMcpServer(bearerToken: string): McpServer {
     },
     async ({ id, vault_key }) => {
       try {
-        const revealed = await client.revealKey(id, vault_key);
+        const revealed = await client.revealKey(id, vaultKeyFor(vault_key));
         return toolJson(revealed);
       } catch (err) {
-        return mapClientError(err);
+        return mapError(err);
       }
     },
   );
@@ -130,7 +164,7 @@ export function createMcpServer(bearerToken: string): McpServer {
         service: z.string().optional().describe("Service name (e.g. Stripe, OpenAI, Resend, Supabase)"),
         environment: z.string().optional().describe("Environment label (defaults to Production)"),
         notes: z.string().optional().describe("Optional developer notes or description"),
-        vault_key: z.string().optional().describe("Custom vault key when required"),
+        vault_key: VAULT_KEY_ARGUMENT,
       },
       annotations: {
         readOnlyHint: false,
@@ -140,11 +174,11 @@ export function createMcpServer(bearerToken: string): McpServer {
       try {
         const created = await client.addKey(
           { name, key, service, environment, notes },
-          vault_key,
+          vaultKeyFor(vault_key),
         );
         return toolJson({ key: created });
       } catch (err) {
-        return mapClientError(err);
+        return mapError(err);
       }
     },
   );
@@ -161,7 +195,7 @@ export function createMcpServer(bearerToken: string): McpServer {
         environment: z.string().optional().describe("New environment name"),
         notes: z.string().optional().describe("New notes"),
         key: z.string().optional().describe("New raw secret value (re-encrypts key)"),
-        vault_key: z.string().optional().describe("Custom vault key when updating secret value"),
+        vault_key: VAULT_KEY_ARGUMENT,
       },
       annotations: {
         readOnlyHint: false,
@@ -173,11 +207,11 @@ export function createMcpServer(bearerToken: string): McpServer {
         const updated = await client.updateKey(
           id,
           { name, service, environment, notes, key },
-          vault_key,
+          vaultKeyFor(vault_key),
         );
         return toolJson({ key: updated });
       } catch (err) {
-        return mapClientError(err);
+        return mapError(err);
       }
     },
   );
@@ -200,7 +234,7 @@ export function createMcpServer(bearerToken: string): McpServer {
         const result = await client.deleteKey(id);
         return toolJson(result);
       } catch (err) {
-        return mapClientError(err);
+        return mapError(err);
       }
     },
   );

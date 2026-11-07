@@ -118,6 +118,28 @@ In your extension's MCP Settings JSON:
 
 ---
 
+### Projects with a custom vault key
+
+Set the vault key once as an `X-Vault-Key` header on the server entry. Your client sends it with every request and the server uses it for `reveal_key`, `add_key` and `update_key`, so you never type the vault key into the chat and the AI never sees it. Read it from an environment variable or a prompt rather than writing it into the file:
+
+```jsonc
+// Cursor (.cursor/mcp.json)
+{ "mcpServers": { "apivault": { "url": "https://mcp.apivault.tech/mcp", "headers": { "X-Vault-Key": "${env:APIVAULT_KEY}" } } } }
+
+// Claude Code (.mcp.json)
+{ "mcpServers": { "apivault": { "type": "http", "url": "https://mcp.apivault.tech/mcp", "headers": { "X-Vault-Key": "${APIVAULT_KEY}" } } } }
+
+// VS Code (.vscode/mcp.json): prompts once and stores it as a secret
+{
+  "inputs": [{ "type": "promptString", "id": "apivault-vault-key", "description": "ApiVault vault key", "password": true }],
+  "servers": { "apivault": { "type": "http", "url": "https://mcp.apivault.tech/mcp", "headers": { "X-Vault-Key": "${input:apivault-vault-key}" } } }
+}
+```
+
+When the header is set, a `vault_key` tool argument is ignored. Clients that can't add headers to a remote server (such as Claude's Connectors UI) can still pass `vault_key`, but that puts the key in the conversation history.
+
+---
+
 ## Tools Reference
 
 The server exposes 6 tools adhering to the Model Context Protocol:
@@ -148,7 +170,7 @@ Decrypt and return the raw, unmasked API key value.
 - **Required Scope:** `keys:reveal`
 - **Parameters:**
   - `id` *(string, required)*: The ID of the key to decrypt.
-  - `vault_key` *(string, optional)*: User's custom vault key (required only if the project uses custom encryption mode).
+  - `vault_key` *(string, optional)*: Fallback for clients without header support. Prefer the `X-Vault-Key` connection header; when it is set, this argument is ignored.
 - **Example Agent Prompt:**
   > "I need the raw OpenAI API key so I can run the backend integration tests."
 
@@ -163,7 +185,7 @@ Securely encrypt and store a new API key in the vault.
   - `service` *(string, optional)*: Service name (e.g. `Stripe`, `OpenAI`, `AWS`).
   - `environment` *(string, optional)*: Target environment (defaults to `Production`).
   - `notes` *(string, optional)*: Developer documentation or usage notes.
-  - `vault_key` *(string, optional)*: Custom vault key when required.
+  - `vault_key` *(string, optional)*: Fallback for clients without header support; ignored when the `X-Vault-Key` header is set.
 - **Example Agent Prompt:**
   > "Store this newly generated Supabase service role key in our Production vault."
 
@@ -176,7 +198,7 @@ Update an existing key's metadata or re-encrypt its secret value.
   - `id` *(string, required)*: Key ID to update.
   - `name`, `service`, `environment`, `notes` *(string, optional)*: Metadata updates.
   - `key` *(string, optional)*: New raw secret value (triggers re-encryption).
-  - `vault_key` *(string, optional)*: Custom vault key when updating secret value.
+  - `vault_key` *(string, optional)*: Fallback for clients without header support; ignored when the `X-Vault-Key` header is set.
 - **Example Agent Prompt:**
   > "Update the notes on the Resend API key to 'Rotated on August 18'."
 
@@ -221,7 +243,7 @@ The MCP server uses a **Stateless Protocol Gateway** architecture, separating th
 ### Security Properties:
 1. **Zero Database Passwords**: The public `apivault-mcp` service holds no MySQL credentials and no master encryption keys.
 2. **Stateless Forwarding**: Client requests are verified and forwarded to ApiVault's scoped gateway (`/api/mcp/v1/keys`) using standard OAuth Bearer tokens.
-3. **Vault Keys Per Request**: A custom vault key (`vault_key`) is forwarded to ApiVault in the `x-vault-key` header for that single request. This service and ApiVault's gateway do not store it or write it to their application logs. It is still a tool argument, so your AI client may keep it in its own conversation history.
+3. **Vault Keys Per Request**: A custom vault key, from the connection's `X-Vault-Key` header or a `vault_key` argument, is forwarded to ApiVault in the `x-vault-key` header for that single request. This service and ApiVault's gateway do not store it or write it to their application logs. A key set as a connection header never reaches the AI; one passed as a tool argument may be kept in your client's conversation history.
 
 ---
 
@@ -251,8 +273,8 @@ Users can review connected AI agents, inspect granted scopes, and revoke access 
 |---|---|---|
 | `UNAUTHORIZED` | Expired or missing OAuth Bearer token. | Re-authenticate in Cursor or Claude Desktop via the Reconnect action. |
 | `INSUFFICIENT_SCOPE` | Token lacks the required scope (e.g. tried `reveal_key` with only `keys:read`). | Re-authenticate and grant the `keys:reveal` or `keys:write` scope during browser consent. |
-| `VAULT_KEY_REQUIRED` | The project uses custom encryption mode and no `vault_key` was passed. | Provide your custom vault key in the tool arguments. |
-| `INVALID_VAULT_KEY` | The supplied custom vault key failed decryption check. | Ask the user for the correct vault key. Do not re-send the same one — wrong guesses are counted against the limit below. |
+| `VAULT_KEY_REQUIRED` | The project uses custom encryption mode and no vault key was configured. | Add the vault key as an `X-Vault-Key` header on the MCP connection (see [Projects with a custom vault key](#projects-with-a-custom-vault-key)). |
+| `INVALID_VAULT_KEY` | The supplied custom vault key failed decryption check. | Correct the `X-Vault-Key` header in the client settings. Do not re-send the same key — wrong guesses are counted against the limit below. |
 | `VAULT_KEY_RATE_LIMITED` | Too many incorrect vault keys — 10 per 15 minutes, counted per user and per source address. | **Stop retrying.** The tool error states how long to wait (from the `Retry-After` header); ask the user for the correct vault key rather than guessing again. |
 | `RATE_LIMITED` | The backend throttled the request (HTTP `429`) without a specific code. | Wait for the delay named in the error message before retrying. |
 | `DUPLICATE_KEY` | A key with the same name and environment already exists. | Use `update_key` or pick a unique key name. |

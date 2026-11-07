@@ -1,5 +1,5 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { createMcpServer } from "./server";
+import { createMcpServer, readConnectionVaultKey } from "./server";
 
 function jsonRpcError(status: number, message: string): Response {
   return new Response(
@@ -56,7 +56,7 @@ export async function handleMcpRequest(req: Request, token: string): Promise<Res
     enableJsonResponse: false,
   });
 
-  const server = createMcpServer(token);
+  const server = createMcpServer(token, readConnectionVaultKey(req.headers));
   await server.connect(transport);
 
   return transport.handleRequest(req, parsedBody !== undefined ? { parsedBody } : undefined);
