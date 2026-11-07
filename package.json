@@ -22,7 +22,7 @@
     "api-keys",
     "oauth2"
   ],
-  "author": "TLB-STATION",
+  "author": "TLB STATION",
   "license": "MIT",
   "engines": {
     "node": ">=20.12.0"
